@@ -32,12 +32,11 @@ commands:
     steps:
       - cached-dependencies
       - run:
-          name: Lint the code
-          command: yarn lint
-      - run:
           name: Build the code
           command: yarn build
-
+      - run:
+          name: Lint the code
+          command: yarn lint
   test-node:
     steps:
       - run:
