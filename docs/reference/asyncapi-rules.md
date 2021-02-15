@@ -153,7 +153,7 @@ Parameter objects should have a `description`.
 
 **Good Example**
 
-``` yaml
+```yaml
 payload:
   type: object
   properties:
@@ -167,7 +167,7 @@ payload:
 
 **Bad Example**
 
-``` yaml
+```yaml
 payload:
   type: object
   properties:
@@ -187,7 +187,7 @@ Values of the `examples` array should be valid against the `payload` they decora
 
 **Good Example**
 
-``` yaml
+```yaml
 payload:
   type: object
   properties:
@@ -202,7 +202,7 @@ payload:
 
 **Bad Example**
 
-``` yaml
+```yaml
 payload:
   type: object
   properties:
@@ -211,8 +211,8 @@ payload:
   required:
     - value
   examples:
-    - value: nope!       # Wrong type
-    - notGoodEither: 17  # Missing required property
+    - value: nope! # Wrong type
+    - notGoodEither: 17 # Missing required property
 ```
 
 ### asyncapi-payload-unsupported-schemaFormat
@@ -269,7 +269,7 @@ Some tooling forgets to strip trailing slashes off when it's joining the `server
 
 **Good Example**
 
-``` yaml
+```yaml
 servers:
   - url: mqtt://example.com
   - url: mqtt://example.com/broker
@@ -277,7 +277,7 @@ servers:
 
 **Bad Example**
 
-``` yaml
+```yaml
 servers:
   - url: mqtt://example.com/
   - url: mqtt://example.com/broker/
@@ -301,9 +301,9 @@ Tags alone are not very descriptive. Give folks a bit more information to work w
 
 ```yaml
 tags:
-  - name: 'Aardvark'
+  - name: "Aardvark"
     description: Funny nosed pig-head racoon.
-  - name: 'Badger'
+  - name: "Badger"
     description: Angry short-legged omnivores.
 ```
 
@@ -314,6 +314,7 @@ tags:
   - name: Invoice Items
     description: |+
       Giant long explanation about what this business concept is, because other people _might_ not have a clue!
+
 ```
 
 **Recommended:** No
@@ -328,16 +329,16 @@ AsyncAPI object should have alphabetical `tags`. This will be sorted by the `nam
 
 ```yaml
 tags:
-  - name: 'Badger'
-  - name: 'Aardvark'
+  - name: "Badger"
+  - name: "Aardvark"
 ```
 
 **Good Example**
 
 ```yaml
 tags:
-  - name: 'Aardvark'
-  - name: 'Badger'
+  - name: "Aardvark"
+  - name: "Badger"
 ```
 
 **Recommended:** No
@@ -352,7 +353,7 @@ Why? Well, you _can_ reference tags arbitrarily in operations, and definition is
 /invoices/{id}/items:
   get:
     tags:
-    - Invoice Items
+      - Invoice Items
 ```
 
 Defining tags allows you to add more information like a `description`. For more information see [asyncapi-tag-description](#asyncapi-tag-description).
@@ -364,7 +365,8 @@ Defining tags allows you to add more information like a `description`. For more 
 Potential unused reusable `schema` entry has been detected.
 
 <!-- theme: warning -->
-*Warning:* This rule may identify false positives when linting a specification
+
+_Warning:_ This rule may identify false positives when linting a specification
 that acts as a library (a container storing reusable objects, leveraged by other
 specifications that reference those objects).
 

@@ -6,23 +6,19 @@ import { STATIC_ASSETS } from '../assets';
 import request from '../request';
 import { Agent } from 'http';
 
-export interface IReadOptions {
+export interface IFileReadOptions {
   encoding: string;
+}
+
+export interface IReadOptions extends IFileReadOptions {
   timeout?: number;
   agent?: Agent;
 }
 
-export async function readFile(name: string | number, opts: IReadOptions): Promise<string> {
-  if (typeof name === 'number') {
-    // Piped through STDIN
-    return readFrom(name, opts.encoding);
-  }
-
+export async function readFile(name: string, opts: IReadOptions): Promise<string> {
   if (name in STATIC_ASSETS) {
     return STATIC_ASSETS[name];
-  }
-
-  if (isURL(name)) {
+  } else if (isURL(name)) {
     let response;
     let timeout: NodeJS.Timeout | number | null = null;
     try {
@@ -51,28 +47,24 @@ export async function readFile(name: string | number, opts: IReadOptions): Promi
         clearTimeout(timeout);
       }
     }
-  }
-
-  try {
-    return await readFrom(name, opts.encoding);
-  } catch (ex) {
-    throw new Error(`Could not read ${name}: ${ex.message}`);
+  } else {
+    try {
+      return await new Promise((resolve, reject) => {
+        fs.readFile(name, opts.encoding, (err, data) => {
+          if (err !== null) {
+            reject(err);
+          } else {
+            resolve(data);
+          }
+        });
+      });
+    } catch (ex) {
+      throw new Error(`Could not read ${name}: ${ex.message}`);
+    }
   }
 }
 
-async function readFrom(name: string | number, encoding: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    fs.readFile(name, encoding, (err, data) => {
-      if (err !== null) {
-        reject(err);
-      } else {
-        resolve(data);
-      }
-    });
-  });
-}
-
-export async function readParsable(name: string | number, opts: IReadOptions): Promise<string> {
+export async function readParsable(name: string, opts: IReadOptions): Promise<string> {
   try {
     return await readFile(name, opts);
   } catch (ex) {

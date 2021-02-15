@@ -3,18 +3,17 @@ import { get } from 'lodash';
 
 import { Document } from '../document';
 import { Rule } from '../rule';
-import { IMessageVars, message } from '../rulesets/message';
-import { getDiagnosticSeverity } from '../rulesets/severity';
+import { getDiagnosticSeverity } from '../ruleset/severity';
 import { IFunctionResult, IFunctionValues, IGivenNode } from '../types';
 import { decodeSegmentFragment, getClosestJsonPath, printPath, PrintStyle } from '../utils';
 import { IRunnerInternalContext } from './types';
-import { getLintTargets, IExceptionLocation, isAKnownException } from './utils';
+import { getLintTargets, ExceptionLocation, isAKnownException, IMessageVars, message } from './utils';
 
 export const lintNode = (
   context: IRunnerInternalContext,
   node: IGivenNode,
   rule: Rule,
-  exceptionLocations: Optional<IExceptionLocation[]>,
+  exceptionLocations: Optional<ExceptionLocation[]>,
 ): void => {
   const fnContext: IFunctionValues = {
     original: node.value,
@@ -91,7 +90,7 @@ function processTargetResults(
   context: IRunnerInternalContext,
   results: IFunctionResult[],
   rule: Rule,
-  exceptionLocations: Optional<IExceptionLocation[]>,
+  exceptionLocations: Optional<ExceptionLocation[]>,
   targetPath: JsonPath,
 ): void {
   for (const result of results) {
@@ -113,7 +112,7 @@ function processTargetResults(
 
     const vars: IMessageVars = {
       property:
-        associatedItem?.missingPropertyPath && associatedItem.missingPropertyPath.length > path.length
+        associatedItem?.missingPropertyPath !== void 0 && associatedItem.missingPropertyPath.length > path.length
           ? printPath(associatedItem.missingPropertyPath.slice(path.length - 1), PrintStyle.Dot)
           : path.length > 0
           ? path[path.length - 1]
@@ -129,11 +128,10 @@ function processTargetResults(
 
     context.results.push({
       code: rule.name,
-      // todo: rule.isInterpolable
       message: (rule.message === null ? rule.description ?? resultMessage : message(rule.message, vars)).trim(),
       path,
       severity: getDiagnosticSeverity(rule.severity),
-      ...(source !== null && { source }),
+      ...(source !== null ? { source } : null),
       range,
     });
   }

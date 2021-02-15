@@ -1,20 +1,13 @@
 import { DiagnosticSeverity } from '@stoplight/types';
-import { functions } from '../../../functions';
-import { RuleType, Spectral } from '../../../index';
-import { setFunctionContext } from '../../evaluators';
-import { typedEnum } from '../functions/typedEnum';
-import { rules } from '../index.json';
+import type { Spectral } from '../../../index';
+import { createWithRules } from './__helpers__/createWithRules';
 
 describe('typed-enum', () => {
-  const s = new Spectral();
-  s.setFunctions({ typedEnum: setFunctionContext({ functions }, typedEnum) });
-  s.setRules({
-    'typed-enum': Object.assign(rules['typed-enum'], {
-      recommended: true,
-      type: RuleType[rules['typed-enum'].type],
-    }),
-  });
+  let s: Spectral;
 
+  beforeEach(async () => {
+    s = await createWithRules(['typed-enum']);
+  });
   describe('oas2', () => {
     test('does not report anything for empty object', async () => {
       const results = await s.run({
@@ -65,6 +58,31 @@ describe('typed-enum', () => {
           code: 'typed-enum',
           message: 'Enum value `and another one!` does not respect the specified type `integer`.',
           path: ['definitions', 'Test', 'enum', '3'],
+          range: expect.any(Object),
+          severity: DiagnosticSeverity.Warning,
+        },
+      ]);
+    });
+
+    test('does not support nullable', async () => {
+      const doc = {
+        swagger: '2.0',
+        definitions: {
+          Test: {
+            type: 'string',
+            nullable: true,
+            enum: ['OK', 'FAILED', null],
+          },
+        },
+      };
+
+      const results = await s.run(doc);
+
+      expect(results).toEqual([
+        {
+          code: 'typed-enum',
+          message: 'Enum value `null` does not respect the specified type `string`.',
+          path: ['definitions', 'Test', 'enum', '2'],
           range: expect.any(Object),
           severity: DiagnosticSeverity.Warning,
         },
@@ -130,6 +148,42 @@ describe('typed-enum', () => {
           severity: DiagnosticSeverity.Warning,
         },
       ]);
+    });
+
+    test('supports nullable', async () => {
+      const doc = {
+        openapi: '3.0.0',
+        components: {
+          schemas: {
+            Test: {
+              type: 'string',
+              nullable: true,
+              enum: ['OK', 'FAILED', null],
+            },
+          },
+        },
+      };
+
+      const results = await s.run(doc);
+
+      expect(results).toEqual([]);
+    });
+
+    test('supports x-nullable', async () => {
+      const doc = {
+        swagger: '2.0.0',
+        definitions: {
+          Test: {
+            type: 'string',
+            'x-nullable': true,
+            enum: ['OK', 'FAILED', null],
+          },
+        },
+      };
+
+      const results = await s.run(doc);
+
+      expect(results).toEqual([]);
     });
   });
 });

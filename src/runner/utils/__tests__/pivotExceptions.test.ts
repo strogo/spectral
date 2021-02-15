@@ -1,9 +1,8 @@
 import { DiagnosticSeverity, Dictionary } from '@stoplight/types';
-import { InvalidUriError } from '../../../rulesets/mergers/exceptions';
-import { IExceptionLocation, pivotExceptions } from '../pivotExceptions';
+import { ExceptionLocation, pivotExceptions } from '../pivotExceptions';
 
-import { buildRulesetExceptionCollectionFrom } from '../../../../setupTests';
 import { Rule } from '../../../rule';
+import { InvalidUriError } from '../../../ruleset/mergers/exceptions';
 
 describe('pivotExceptions', () => {
   let dummyRule: Rule;
@@ -24,7 +23,7 @@ describe('pivotExceptions', () => {
     };
 
     const runRules = { a: dummyRule };
-    const expected: Dictionary<IExceptionLocation[], string> = {
+    const expected: Dictionary<ExceptionLocation[], string> = {
       a: [{ source: 'one', path: ['1'] }],
     };
 
@@ -39,7 +38,7 @@ describe('pivotExceptions', () => {
     };
 
     const runRules = { a: dummyRule, b: dummyRule, c: dummyRule, d: dummyRule };
-    const expected: Dictionary<IExceptionLocation[], string> = {
+    const expected: Dictionary<ExceptionLocation[], string> = {
       a: [
         { source: 'one', path: ['1'] },
         { source: 'three', path: ['3'] },
@@ -55,10 +54,8 @@ describe('pivotExceptions', () => {
     expect(pivotExceptions(exceptions, runRules)).toEqual(expected);
   });
 
-  const malformedLocations = [[''], ['a'], ['#'], ['#a'], ['#/']];
-
-  it.each(malformedLocations)('throws upon detected malformed location (%s)', malformed => {
-    const bad = buildRulesetExceptionCollectionFrom(malformed);
+  it.each([['']])('throws upon detected malformed location (%s)', malformed => {
+    const bad = { [malformed]: ['a'] };
 
     expect(() => {
       pivotExceptions(bad, {});

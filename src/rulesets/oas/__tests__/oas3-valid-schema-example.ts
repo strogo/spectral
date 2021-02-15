@@ -1,27 +1,34 @@
 import { DiagnosticSeverity } from '@stoplight/types';
-import { RuleType, Spectral } from '../../../spectral';
-import * as ruleset from '../index.json';
-import { setFunctionContext } from '../../evaluators';
-import { functions } from '../../../functions';
-import oasExample from '../functions/oasExample';
+import { Spectral } from '../../../spectral';
+
+import { createWithRules } from './__helpers__/createWithRules';
+
+const Decimal = require('decimal.js');
 
 describe('oas3-valid-schema-example', () => {
   let s: Spectral;
 
-  beforeEach(() => {
-    s = new Spectral();
-    s.registerFormat('oas3', () => true);
-    s.setFunctions({ oasExample: setFunctionContext({ functions }, oasExample) });
-    s.setRules({
-      'oas3-valid-schema-example': Object.assign(ruleset.rules['oas3-valid-schema-example'], {
-        recommended: true,
-        type: RuleType[ruleset.rules['oas3-valid-schema-example'].type],
-      }),
-    });
+  beforeEach(async () => {
+    s = await createWithRules(['oas3-valid-schema-example']);
   });
 
   describe.each(['components', 'headers'])('%s', field => {
     test('will pass when simple example is valid', async () => {
+      const results = await s.run({
+        openapi: '3.0.2',
+        [field]: {
+          schemas: {
+            xoxo: {
+              type: 'string',
+              example: 'doggie',
+            },
+          },
+        },
+      });
+      expect(results).toHaveLength(0);
+    });
+
+    test('will pass when default value is valid', async () => {
       const results = await s.run({
         openapi: '3.0.2',
         [field]: {
@@ -53,6 +60,27 @@ describe('oas3-valid-schema-example', () => {
           severity: DiagnosticSeverity.Error,
           code: 'oas3-valid-schema-example',
           message: '`example` property type should be string',
+        }),
+      ]);
+    });
+
+    test('will fail when default value is invalid', async () => {
+      const results = await s.run({
+        openapi: '3.0.2',
+        [field]: {
+          schemas: {
+            xoxo: {
+              type: 'string',
+              default: 2,
+            },
+          },
+        },
+      });
+      expect(results).toEqual([
+        expect.objectContaining({
+          code: 'oas3-valid-schema-example',
+          message: '`default` property type should be string',
+          severity: DiagnosticSeverity.Error,
         }),
       ]);
     });
@@ -124,6 +152,30 @@ describe('oas3-valid-schema-example', () => {
           severity: DiagnosticSeverity.Error,
         }),
       ]);
+    });
+
+    describe.each(['', null, 0, false])('given falsy %s value', value => {
+      test('will validate empty value', async () => {
+        const results = await s.run({
+          openapi: '3.0.2',
+          [field]: {
+            schemas: {
+              xoxo: {
+                enum: ['a', 'b'],
+                example: value,
+              },
+            },
+          },
+        });
+
+        expect(results).toEqual([
+          expect.objectContaining({
+            code: 'oas3-valid-schema-example',
+            message: '`example` property should be equal to one of the allowed values: `a`, `b`',
+            severity: DiagnosticSeverity.Error,
+          }),
+        ]);
+      });
     });
 
     test('will pass when complex example is used ', async () => {
@@ -302,8 +354,8 @@ describe('oas3-valid-schema-example', () => {
       ['byte', 'MTI3'],
       ['int32', 2 ** 30],
       ['int64', 2 ** 40],
-      ['float', 2 ** 64],
-      ['double', 2 ** 1028],
+      ['float', new Decimal(2).pow(128)],
+      ['double', new Decimal(2).pow(1024)],
     ])('does not report valid usage of %s format', async (format, example) => {
       const results = await s.run({
         openapi: '3.0.2',

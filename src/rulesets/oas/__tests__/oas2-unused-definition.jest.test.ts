@@ -4,21 +4,16 @@ import * as nock from 'nock';
 
 import { Document } from '../../../document';
 import { readParsable } from '../../../fs/reader';
-import { unreferencedReusableObject } from '../../../functions/unreferencedReusableObject';
-import { RuleType, Spectral } from '../../../index';
+import type { Spectral } from '../../../spectral';
 import * as Parsers from '../../../parsers';
+import { createWithRules } from './__helpers__/createWithRules';
 import { httpAndFileResolver } from '../../../resolvers/http-and-file';
-import { rules } from '../index.json';
 
 describe('unusedDefinition - Http and fs remote references', () => {
-  const s = new Spectral({ resolver: httpAndFileResolver });
-  s.registerFormat('oas2', () => true);
-  s.setFunctions({ unreferencedReusableObject });
-  s.setRules({
-    'oas2-unused-definition': Object.assign(rules['oas2-unused-definition'], {
-      recommended: true,
-      type: RuleType[rules['oas2-unused-definition'].type],
-    }),
+  let s: Spectral;
+
+  beforeEach(async () => {
+    s = await createWithRules(['oas2-unused-definition'], { resolver: httpAndFileResolver });
   });
 
   describe('reports unreferenced definitions', () => {
@@ -38,7 +33,7 @@ describe('unusedDefinition - Http and fs remote references', () => {
 
       const remoteFsRefeferencePath = path.join(
         __dirname,
-        '../../__tests__/__fixtures__/unusedDefinition.definition.json#/definitions/ExternalFs',
+        './__fixtures__/unusedShared/unusedDefinition.definition.json#/definitions/ExternalFs',
       );
 
       const doc = `{
@@ -106,7 +101,7 @@ describe('unusedDefinition - Http and fs remote references', () => {
     });
 
     test('when analyzing a directly self-referencing document from the filesystem', async () => {
-      const fixturePath = path.join(__dirname, '../../__tests__/__fixtures__/unusedDefinition.remoteLocal.json');
+      const fixturePath = path.join(__dirname, './__fixtures__/unusedShared/unusedDefinition.remoteLocal.json');
 
       const doc = await readParsable(fixturePath, { encoding: 'utf8' });
       const results = await s.run(new Document(doc, Parsers.Json, fixturePath));
@@ -115,7 +110,7 @@ describe('unusedDefinition - Http and fs remote references', () => {
     });
 
     test('when analyzing an indirectly self-referencing document from the filesystem', async () => {
-      const fixturePath = path.join(__dirname, '../../__tests__/__fixtures__/unusedDefinition.indirect.1.json');
+      const fixturePath = path.join(__dirname, './__fixtures__/unusedShared/unusedDefinition.indirect.1.json');
 
       const doc = await readParsable(fixturePath, { encoding: 'utf8' });
       const results = await s.run(new Document(doc, Parsers.Json, fixturePath));
@@ -136,7 +131,7 @@ describe('unusedDefinition - Http and fs remote references', () => {
             },
           },
           severity: DiagnosticSeverity.Warning,
-          source: expect.stringMatching('/__tests__/__fixtures__/unusedDefinition.indirect.1.json$'),
+          source: expect.stringMatching('/__fixtures__/unusedShared/unusedDefinition.indirect.1.json$'),
         },
       ]);
     });

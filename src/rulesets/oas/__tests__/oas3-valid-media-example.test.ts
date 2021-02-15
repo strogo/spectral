@@ -1,23 +1,14 @@
 import { DiagnosticSeverity } from '@stoplight/types';
-import { RuleType, Spectral } from '../../../spectral';
-import { rules } from '../index.json';
-import { setFunctionContext } from '../../evaluators';
-import { functions } from '../../../functions';
-import oasExample from '../functions/oasExample';
+import type { Spectral } from '../../../spectral';
+import { createWithRules } from './__helpers__/createWithRules';
+
+const Decimal = require('decimal.js');
 
 describe('oas3-valid-media-example', () => {
   let s: Spectral;
 
-  beforeEach(() => {
-    s = new Spectral();
-    s.registerFormat('oas3', () => true);
-    s.setFunctions({ oasExample: setFunctionContext({ functions }, oasExample) });
-    s.setRules({
-      ['oas3-valid-media-example']: Object.assign(rules['oas3-valid-media-example'], {
-        recommended: true,
-        type: RuleType[rules['oas3-valid-media-example'].type],
-      }),
-    });
+  beforeEach(async () => {
+    s = await createWithRules(['oas3-valid-media-example']);
   });
 
   describe.each(['headers', 'content'])('%s', path => {
@@ -55,6 +46,30 @@ describe('oas3-valid-media-example', () => {
           message: '`example` property type should be string',
         }),
       ]);
+    });
+
+    describe.each(['', null, 0, false])('given falsy %s value', value => {
+      test('will validate empty value', async () => {
+        const results = await s.run({
+          openapi: '3.0.2',
+          [path]: {
+            xoxo: {
+              schema: {
+                enum: ['a', 'b'],
+              },
+              example: value,
+            },
+          },
+        });
+
+        expect(results).toEqual([
+          expect.objectContaining({
+            code: 'oas3-valid-media-example',
+            message: '`example` property should be equal to one of the allowed values: `a`, `b`',
+            severity: DiagnosticSeverity.Error,
+          }),
+        ]);
+      });
     });
 
     test('will pass when complex example is used ', async () => {
@@ -173,6 +188,26 @@ describe('oas3-valid-media-example', () => {
       ]);
     });
 
+    test('ignores externalValue', async () => {
+      const results = await s.run({
+        openapi: '3.0.0',
+        [path]: {
+          xoxo: {
+            schema: {
+              type: 'string',
+            },
+            examples: {
+              test1: {
+                externalValue: 'http://example.com/foobar.json',
+              },
+            },
+          },
+        },
+      });
+
+      expect(results).toEqual([]);
+    });
+
     test('does not report example mismatches for unknown AJV formats', async () => {
       const results = await s.run({
         openapi: '3.0.0',
@@ -227,8 +262,8 @@ describe('oas3-valid-media-example', () => {
       ['byte', 'MTI3'],
       ['int32', 2 ** 30],
       ['int64', 2 ** 40],
-      ['float', 2 ** 64],
-      ['double', 2 ** 1028],
+      ['float', new Decimal(2).pow(128)],
+      ['double', new Decimal(2).pow(1024)],
     ])('does not report valid usage of %s format', async (format, example) => {
       const results = await s.run({
         openapi: '3.0.0',
@@ -281,6 +316,7 @@ describe('oas3-valid-media-example', () => {
   describe('parameters', () => {
     test('will pass when simple example is valid', async () => {
       const results = await s.run({
+        openapi: '3.0.0',
         parameters: [
           {
             schema: {
@@ -295,6 +331,7 @@ describe('oas3-valid-media-example', () => {
 
     test('will fail when simple example is invalid', async () => {
       const results = await s.run({
+        openapi: '3.0.0',
         parameters: [
           {
             schema: {
@@ -315,6 +352,7 @@ describe('oas3-valid-media-example', () => {
 
     test('will pass when complex example is used ', async () => {
       const results = await s.run({
+        openapi: '3.0.0',
         parameters: [
           {
             schema: {
@@ -346,6 +384,7 @@ describe('oas3-valid-media-example', () => {
 
     test('will fail when complex example is used', async () => {
       const data = {
+        openapi: '3.0.0',
         parameters: [
           {
             Heh: {
@@ -394,6 +433,7 @@ describe('oas3-valid-media-example', () => {
 
     test('will error with totally invalid input', async () => {
       const results = await s.run({
+        openapi: '3.0.0',
         parameters: [
           {
             schema: {

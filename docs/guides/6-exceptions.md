@@ -53,6 +53,27 @@ In the future when the API is improved to pass those rules, they can be removed.
 extends: https://acme.org/ruleset.yaml
 ```
 
+If you wish to turn off a given rule for a whole file, you should skip the pointer.
+
+```yaml
+# .spectral.yaml
+extends: https://acme.org/ruleset.yaml
+
+except:
+  "subfolder/one.yaml":
+    - my-rule
+```
+
+Disabling a particular JSON path globally is supported as well.
+
+```yaml
+extends: https://acme.org/ruleset.yaml
+
+except:
+  "#/info":
+    - info-contact
+```
+
 ## Special Characters
 
 [RFC 6901](https://tools.ietf.org/html/rfc6901#section-3) says that special characters
@@ -65,4 +86,5 @@ An example with more path segments: the location for a `get` method from a
 would be expressed as `/root/here.yaml#/paths/~1todos~1{todo_id}~1labels/get`.
 
 <!-- theme: info -->
+
 > Running Spectral CLI with the `--format json` parameter is pretty useful to find out the path segments of each result.

@@ -1,13 +1,13 @@
 import { DiagnosticSeverity } from '@stoplight/types';
 import { isOpenApiv2, isOpenApiv3, RuleType, Spectral } from '../../../..';
 import { functions } from '../../../../functions';
-import { setFunctionContext } from '../../../evaluators';
 import { rules } from '../../index.json';
 import oasDocumentSchema, { prepareResults } from '../oasDocumentSchema';
 
 import { ErrorObject } from 'ajv';
 import * as oas2Schema from '../../schemas/schema.oas2.json';
 import * as oas3Schema from '../../schemas/schema.oas3.json';
+import { setFunctionContext } from '../../../../ruleset';
 
 describe('oasDocumentSchema', () => {
   let s: Spectral;
@@ -154,6 +154,13 @@ describe('oasDocumentSchema', () => {
           code: 'oas3-schema',
           message: 'Invalid security scheme.',
           path: ['components', 'securitySchemes', 'basic'],
+          severity: DiagnosticSeverity.Error,
+          range: expect.any(Object),
+        },
+        {
+          code: 'oas3-schema',
+          message: 'Property `foo` is not expected to be here.',
+          path: ['components', 'securitySchemes', 'basic', 'foo'],
           severity: DiagnosticSeverity.Error,
           range: expect.any(Object),
         },

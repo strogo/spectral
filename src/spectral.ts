@@ -13,10 +13,14 @@ import * as Parsers from './parsers';
 import request from './request';
 import { createHttpAndFileResolver } from './resolvers/http-and-file';
 import { OptimizedRule, Rule } from './rule';
-import { readRuleset } from './rulesets';
-import { compileExportedFunction, setFunctionContext } from './rulesets/evaluators';
-import { mergeExceptions } from './rulesets/mergers/exceptions';
-import { IRulesetReadOptions } from './rulesets/reader';
+import {
+  compileExportedFunction,
+  IRulesetReadOptions,
+  setFunctionContext,
+  readRuleset,
+  getDiagnosticSeverity,
+} from './ruleset';
+import { mergeExceptions } from './ruleset/mergers/exceptions';
 import { Runner, RunnerRuntime } from './runner';
 import {
   FormatLookup,
@@ -32,9 +36,10 @@ import {
   RuleCollection,
   RunRuleCollection,
 } from './types';
-import { IRuleset, RulesetExceptionCollection } from './types/ruleset';
+import { IParserOptions, IRuleset, RulesetExceptionCollection } from './types/ruleset';
 import { ComputeFingerprintFunc, defaultComputeResultFingerprint, empty, isNimmaEnvVariableSet } from './utils';
 import { generateDocumentWideResult } from './utils/generateDocumentWideResult';
+import { DEFAULT_PARSER_OPTIONS } from './consts';
 
 memoize.Cache = WeakMap;
 
@@ -48,6 +53,7 @@ export class Spectral {
   public readonly rules: RunRuleCollection = {};
   public readonly exceptions: RulesetExceptionCollection = {};
   public readonly formats: RegisteredFormats;
+  public readonly parserOptions: Required<IParserOptions> = { ...DEFAULT_PARSER_OPTIONS };
 
   protected readonly runtime: RunnerRuntime;
 
@@ -56,12 +62,12 @@ export class Spectral {
   constructor(protected readonly opts?: IConstructorOpts) {
     this._computeFingerprint = memoize(opts?.computeFingerprint ?? defaultComputeResultFingerprint);
 
-    if (opts?.proxyUri) {
+    if (opts?.proxyUri !== void 0) {
       // using eval so bundlers do not include proxy-agent when Spectral is used in the browser
       const ProxyAgent = eval('require')('proxy-agent');
       this.agent = new ProxyAgent(opts.proxyUri);
     }
-    if (opts?.resolver) {
+    if (opts?.resolver !== void 0) {
       this._resolver = opts.resolver;
     } else {
       this._resolver =
@@ -83,15 +89,35 @@ export class Spectral {
     target: IParsedResult | IDocument | object | string,
     documentUri: Optional<string>,
   ): IDocument {
-    return target instanceof Document
-      ? target
-      : isParsedResult(target)
-      ? new ParsedDocument(target)
-      : new Document<unknown, YamlParserResult<unknown>>(
-          typeof target === 'string' ? target : stringify(target, void 0, 2),
-          Parsers.Yaml,
-          documentUri,
-        );
+    const document =
+      target instanceof Document
+        ? target
+        : isParsedResult(target)
+        ? new ParsedDocument(target)
+        : new Document<unknown, YamlParserResult<unknown>>(
+            typeof target === 'string' ? target : stringify(target, void 0, 2),
+            Parsers.Yaml,
+            documentUri,
+          );
+
+    let i = -1;
+    for (const diagnostic of document.diagnostics.slice()) {
+      i++;
+      if (diagnostic.code !== 'parser') continue;
+
+      if (diagnostic.message.startsWith('Mapping key must be a string scalar rather than')) {
+        diagnostic.severity = getDiagnosticSeverity(this.parserOptions.incompatibleValues);
+      } else if (diagnostic.message.startsWith('Duplicate key')) {
+        diagnostic.severity = getDiagnosticSeverity(this.parserOptions.duplicateKeys);
+      }
+
+      if (diagnostic.severity === -1) {
+        document.diagnostics.splice(i, 1);
+        i--;
+      }
+    }
+
+    return document;
   }
 
   public async runWithResolved(
@@ -111,7 +137,9 @@ export class Spectral {
 
     if (document.formats === void 0) {
       const registeredFormats = Object.keys(this.formats);
-      const foundFormats = registeredFormats.filter(format => this.formats[format](inventory.resolved));
+      const foundFormats = registeredFormats.filter(format =>
+        this.formats[format](inventory.resolved, document.source ?? void 0),
+      );
       if (foundFormats.length === 0 && opts.ignoreUnknownFormat !== true) {
         document.formats = null;
         if (registeredFormats.length > 0) {
@@ -227,6 +255,10 @@ export class Spectral {
     );
 
     this.setExceptions(ruleset.exceptions);
+
+    if (ruleset.parserOptions !== void 0) {
+      Object.assign<Required<IParserOptions>, IParserOptions>(this.parserOptions, ruleset.parserOptions);
+    }
   }
 
   public registerFormat(format: string, fn: FormatLookup): void {

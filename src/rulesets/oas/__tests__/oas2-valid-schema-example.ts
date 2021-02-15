@@ -1,28 +1,18 @@
 import { DiagnosticSeverity } from '@stoplight/types';
-import { RuleType, Spectral } from '../../../spectral';
-import * as ruleset from '../index.json';
-import { setFunctionContext } from '../../evaluators';
-import { functions } from '../../../functions';
-import oasExample from '../functions/oasExample';
+import type { Spectral } from '../../../spectral';
+import { createWithRules } from './__helpers__/createWithRules';
 
 describe('oas2-valid-schema-example', () => {
   let s: Spectral;
 
-  beforeEach(() => {
-    s = new Spectral();
-    s.registerFormat('oas2', () => true);
-    s.setFunctions({ oasExample: setFunctionContext({ functions }, oasExample) });
-    s.setRules({
-      'oas2-valid-schema-example': Object.assign(ruleset.rules['oas2-valid-schema-example'], {
-        recommended: true,
-        type: RuleType[ruleset.rules['oas2-valid-schema-example'].type],
-      }),
-    });
+  beforeEach(async () => {
+    s = await createWithRules(['oas2-valid-schema-example']);
   });
 
   describe.each(['parameters', 'definitions'])('%s', parentField => {
     test.each(['example', 'x-example'])('will pass when %s example is valid', async field => {
       const results = await s.run({
+        swagger: '2.0',
         [parentField]: [
           {
             in: 'body',
@@ -36,8 +26,65 @@ describe('oas2-valid-schema-example', () => {
       expect(results).toHaveLength(0);
     });
 
+    test('will pass when both examples are valid', async () => {
+      const results = await s.run({
+        swagger: '2.0',
+        [parentField]: [
+          {
+            in: 'body',
+            schema: {
+              type: 'string',
+              example: 'doggie',
+              'x-example': 'doggie',
+            },
+          },
+        ],
+      });
+      expect(results).toHaveLength(0);
+    });
+
+    test('will pass when default value is valid', async () => {
+      const results = await s.run({
+        swagger: '2.0',
+        [parentField]: [
+          {
+            in: 'body',
+            schema: {
+              type: 'string',
+              default: '2',
+            },
+          },
+        ],
+      });
+      expect(results).toHaveLength(0);
+    });
+
+    test('will fail when one of examples is invalid', async () => {
+      const results = await s.run({
+        swagger: '2.0',
+        [parentField]: [
+          {
+            in: 'body',
+            schema: {
+              type: 'string',
+              example: 'doggie',
+              'x-example': 2,
+            },
+          },
+        ],
+      });
+      expect(results).toEqual([
+        expect.objectContaining({
+          code: 'oas2-valid-schema-example',
+          message: '`x-example` property type should be string',
+          severity: DiagnosticSeverity.Error,
+        }),
+      ]);
+    });
+
     test.each(['example', 'x-example'])('will fail when simple %s is invalid', async field => {
       const results = await s.run({
+        swagger: '2.0',
         [parentField]: [
           {
             xoxo: {
@@ -56,8 +103,55 @@ describe('oas2-valid-schema-example', () => {
       ]);
     });
 
+    test('will fail when default value is invalid', async () => {
+      const results = await s.run({
+        swagger: '2.0',
+        [parentField]: [
+          {
+            in: 'body',
+            schema: {
+              type: 'string',
+              default: 2,
+            },
+          },
+        ],
+      });
+      expect(results).toEqual([
+        expect.objectContaining({
+          code: 'oas2-valid-schema-example',
+          message: '`default` property type should be string',
+          severity: DiagnosticSeverity.Error,
+        }),
+      ]);
+    });
+
+    describe.each(['', null, 0, false])('given falsy %s value', value => {
+      test.each(['example', 'x-example'])('will validate empty %s value', async field => {
+        const results = await s.run({
+          swagger: '2.0',
+          [parentField]: [
+            {
+              xoxo: {
+                enum: ['a', 'b'],
+                [field]: value,
+              },
+            },
+          ],
+        });
+
+        expect(results).toEqual([
+          expect.objectContaining({
+            code: 'oas2-valid-schema-example',
+            message: `\`${field}\` property should be equal to one of the allowed values: \`a\`, \`b\``,
+            severity: DiagnosticSeverity.Error,
+          }),
+        ]);
+      });
+    });
+
     test('will pass when complex example is used ', async () => {
       const results = await s.run({
+        swagger: '2.0',
         [parentField]: [
           {
             in: 'body',
@@ -90,6 +184,7 @@ describe('oas2-valid-schema-example', () => {
 
     test('will error with totally invalid input', async () => {
       const results = await s.run({
+        swagger: '2.0',
         [parentField]: [
           {
             in: 'body',
@@ -128,6 +223,7 @@ describe('oas2-valid-schema-example', () => {
 
     test('will not fail if an actual property is called example and there is also type/format property', async () => {
       const results = await s.run({
+        swagger: '2.0',
         [parentField]: [
           {
             type: 'object',
@@ -153,6 +249,7 @@ describe('oas2-valid-schema-example', () => {
   describe('definitions', () => {
     test('works fine with allOf $ref', async () => {
       const results = await s.run({
+        swagger: '2.0',
         definitions: {
           halRoot: {
             type: 'object',
@@ -230,6 +327,7 @@ describe('oas2-valid-schema-example', () => {
 
     test('will fail for valid parents examples which contain invalid child examples', async () => {
       const results = await s.run({
+        swagger: '2.0',
         definitions: [
           {
             xoxo: {
@@ -280,6 +378,7 @@ describe('oas2-valid-schema-example', () => {
 
     test('will not fail if an actual property is called example', async () => {
       const results = await s.run({
+        swagger: '2.0',
         definitions: {
           xoxo: {
             type: 'object',

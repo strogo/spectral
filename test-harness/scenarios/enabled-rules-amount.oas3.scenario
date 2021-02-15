@@ -24,13 +24,13 @@ components:
 ====command====
 {bin} lint {document} --ruleset ./rulesets/parameter-description.oas3.yaml -v
 ====stdout====
-Found 48 rules (1 enabled)
+Found 49 rules (1 enabled)
 Linting {document}
 OpenAPI 3.x detected
 
 {document}
-  5:9   warning  oas3-parameter-description  Parameter objects should have a `description`.
-  9:11  warning  oas3-parameter-description  Parameter objects should have a `description`.
- 16:15  warning  oas3-parameter-description  Parameter objects should have a `description`.
+  5:9   warning  oas3-parameter-description  Parameter objects should have a `description`.  paths./pets.parameters[0]
+  9:11  warning  oas3-parameter-description  Parameter objects should have a `description`.  paths./pets.get.parameters[0]
+ 16:15  warning  oas3-parameter-description  Parameter objects should have a `description`.  components.parameters.skipParam
 
 ✖ 3 problems (0 errors, 3 warnings, 0 infos, 0 hints)

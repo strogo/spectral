@@ -1,7 +1,7 @@
 import { join, resolve } from '@stoplight/path';
 import * as nock from 'nock';
 import * as yargs from 'yargs';
-import { ValidationError } from '../../../rulesets/validation';
+import { ValidationError } from '../../../ruleset/validation';
 import { ILintConfig } from '../../../types/config';
 import lintCommand from '../../commands/lint';
 import { lint } from '../linter';
@@ -391,7 +391,7 @@ describe('Linter service', () => {
             source: join(process.cwd(), 'src/__tests__/__fixtures__/petstore.invalid-schema.oas3.json'),
           }),
           expect.objectContaining({
-            code: 'oas3-unused-components-schema',
+            code: 'oas3-unused-component',
             path: ['components', 'schemas', 'Pets'],
             source: join(process.cwd(), 'src/__tests__/__fixtures__/petstore.invalid-schema.oas3.json'),
           }),
@@ -562,7 +562,7 @@ describe('Linter service', () => {
         expect.objectContaining({
           code: 'oas2-schema',
           message: 'Property `foo` is not expected to be here.',
-          path: ['paths'],
+          path: ['paths', 'foo'],
           range: {
             end: {
               character: 13,
@@ -570,14 +570,14 @@ describe('Linter service', () => {
             },
             start: {
               character: 10,
-              line: 6,
+              line: 8,
             },
           },
           source: expect.stringContaining('__tests__/__fixtures__/draft-ref.oas2.json'),
         }),
         expect.objectContaining({
           code: 'oas2-schema',
-          message: 'Property `foo` is not expected to be here.',
+          message: '`info` property should have required property `title`.',
           path: ['definitions', 'info'],
           range: {
             end: {
@@ -587,6 +587,22 @@ describe('Linter service', () => {
             start: {
               character: 12,
               line: 3,
+            },
+          },
+          source: expect.stringContaining('/__tests__/__fixtures__/refs/info.json'),
+        }),
+        expect.objectContaining({
+          code: 'oas2-schema',
+          message: 'Property `foo` is not expected to be here.',
+          path: ['definitions', 'info', 'foo'],
+          range: {
+            end: {
+              character: 18,
+              line: 4,
+            },
+            start: {
+              character: 13,
+              line: 4,
             },
           },
           source: expect.stringContaining('/__tests__/__fixtures__/refs/info.json'),
@@ -669,7 +685,23 @@ describe('Linter service', () => {
         }),
         expect.objectContaining({
           code: 'oas2-schema',
-          message: 'Property `response` is not expected to be here.',
+          message: '`description` property type should be string.', // this is covered by 'info-description' as well
+          path: ['description'],
+          range: {
+            end: {
+              character: 18,
+              line: 2,
+            },
+            start: {
+              character: 17,
+              line: 2,
+            },
+          },
+          source: expect.stringContaining('__tests__/__fixtures__/refs/contact.json'),
+        }),
+        expect.objectContaining({
+          code: 'oas2-schema',
+          message: '`get` property should have required property `responses`.',
           path: ['paths', '/test', 'get'],
           range: {
             end: {
@@ -727,6 +759,22 @@ describe('Linter service', () => {
             start: {
               character: 13,
               line: 3,
+            },
+          },
+          source: expect.stringContaining('__tests__/__fixtures__/refs/paths.json'),
+        }),
+        expect.objectContaining({
+          code: 'oas2-schema',
+          message: 'Property `response` is not expected to be here.',
+          path: ['paths', '/test', 'get', 'response'],
+          range: {
+            end: {
+              character: 25,
+              line: 4,
+            },
+            start: {
+              character: 20,
+              line: 4,
             },
           },
           source: expect.stringContaining('__tests__/__fixtures__/refs/paths.json'),
