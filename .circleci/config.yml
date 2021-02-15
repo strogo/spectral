@@ -106,7 +106,7 @@ jobs:
       - checkout
       - install-and-build
       - test-node
-      - test-harness
+      # - test-harness
 
   build-windows-binary:
     executor:
