@@ -52,7 +52,6 @@
     "postbuild.functions": "copyfiles -u 1 \"dist/rulesets/{oas,asyncapi}/functions/*.js\" ./",
     "postbuild": "yarn build.functions && yarn generate-assets",
     "prebuild": "yarn build.clean && copyfiles -u 1 \"src/rulesets/{oas,asyncapi}/**/*.json\" dist && copyfiles -u 1 \"src/rulesets/{oas,asyncapi}/**/*.json\" ./ && yarn copy.html-templates",
-    "prebuild.binary": "yarn build",
     "pretest.karma": "node ./scripts/generate-karma-fixtures.js && yarn pretest",
     "pretest": "yarn generate-assets",
     "schema.update": "yarn typescript-json-schema --id \"http://stoplight.io/schemas/rule.schema.json\" --required tsconfig.json IRule --out ./src/meta/rule.schema.json",

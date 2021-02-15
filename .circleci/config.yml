@@ -37,6 +37,7 @@ commands:
       - run:
           name: Lint the code
           command: yarn lint
+
   test-node:
     steps:
       - run:
