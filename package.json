@@ -57,10 +57,8 @@
     "schema.update": "yarn typescript-json-schema --id \"http://stoplight.io/schemas/rule.schema.json\" --required tsconfig.json IRule --out ./src/meta/rule.schema.json",
     "test.harness": "jest -c ./test-harness/jest.config.js",
     "test.karma": "karma start",
-    "test.prod": "yarn build && yarn lint && yarn test.karma && yarn test --coverage --maxWorkers=2",
-    "test.update": "yarn test --updateSnapshot",
-    "test.watch": "yarn test --watch",
-    "test": "jest --silent"
+    "test.jest": "jest --silent",
+    "test": "yarn test.karma && yarn test --coverage --maxWorkers=2"
   },
   "dependencies": {
     "@stoplight/better-ajv-errors": "0.0.4",
