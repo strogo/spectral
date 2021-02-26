@@ -1,7 +1,6 @@
 version: 2.1
 
 orbs:
-  stoplight: stoplight/cli@0.0.2
   windows: circleci/windows@2.4.0
   node: circleci/node@3.0.0
 
@@ -45,7 +44,7 @@ commands:
           command: yarn test.jest --coverage --maxWorkers=2
       - run:
           name: Run node tests (nimma)
-          command: npx cross-env USE_NIMMA=true yarn.jest test --maxWorkers=2
+          command: npx cross-env USE_NIMMA=true yarn test.jest --maxWorkers=2
 
   test-harness:
     steps:
@@ -121,7 +120,7 @@ jobs:
 
   release:
     docker:
-      - image: circleci/node:12
+      - image: circleci/node:14
     steps:
       - prepare-release
       - run: |
@@ -160,9 +159,9 @@ workflows:
               os:
                 - linux
               node-version:
-                - "10.18"
-                - "12.9"
-                - "14.9"
+                - "12.21"
+                - "14.16"
+                - "15.10"
       - test-windows
       - test-browser
 
@@ -180,11 +179,5 @@ workflows:
               ignore: /.*/
             tags:
               only: /^v.*/
-          requires:
-            - release
-      - stoplight/analyze:
-          filters:
-            branches:
-              only: master
           requires:
             - release
